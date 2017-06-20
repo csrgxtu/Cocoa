@@ -1,38 +1,49 @@
 from wsgiref.simple_server import make_server
+import re
 
 
 class Cocoa(object):
     ''' Cocoa, the class '''
     def __init__(self):
-        self.routes = {}
+        self.routes = []
+
+    @staticmethod
+    def build_route_pattern(route):
+        ''' build re pattern through registered url '''
+        route_regex = re.sub(r'(<\w+>)', r'(?P\1.+)', route)
+        return re.compile("^{}$".format(route_regex))
 
     def route(self, route_str):
         ''' the route decorator '''
         def decorator(f):
             ''' just set the route map '''
-            self.routes[route_str] = f
+            route_pattern = self.build_route_pattern(route_str)
+            self.routes.append((route_pattern, f))
+
             return f
+
         return decorator
 
-    def serve(self, path):
-        ''' server a request '''
-        view_function = self.routes[path]
-        if view_function:
-            return view_function
-        else:
-            raise ValueError('Route "{}" has not been registered'.format(path))
+    def get_route_match(self, path):
+        ''' get the matching route and view '''
+        for route_pattern, view_function in self.routes:
+            m = route_pattern.match(path)
+            if m:
+                return m.groupdict(), view_function
+
+        return None
 
     def application(self, environ, start_response):
         ''' implement the wsgi '''
         path = environ['PATH_INFO']
-        view_function = self.routes[path] if self.routes.has_key(path) else None
-        if view_function:
+        route_match = self.get_route_match(path)
+        if route_match:
+            kwargs, view_function = route_match
             start_response('200 OK', [('Content-Type', 'text/html')])
-            return view_function()
+            return view_function(**kwargs)
         else:
             start_response('404 NOT FOUND', [('Content-Type', 'text/html')])
             return 'Route "{}" has not been registered'.format(path)
-            # raise ValueError('Route "{}" has not been registered'.format(path))
 
     def run(self, host, port):
         ''' start a embed wsgi compatible http web server '''
