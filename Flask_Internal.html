@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Title</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Flask Inernal
+archer.li@shopeemobile.com
+
+Software Engineer @ Sea Shopee
+
+
+---
+## Contents
+* ### History
+* ### Web server and Web applications
+* ### Session In Flask
+* ### Route In Flask
+* ### Context In Flask
+* ### Template Engine
+* ### Reference
+
+
+---
+
+## History
+
+* #### Armin Ronacher  [@mitsuhiko](@mitsuhiko), Pocoo
+* #### Deny
+
+```python
+# a deny application
+from deny import *
+
+@route('/')
+def welcome():
+  return "welcome to deny"
+
+if __name__ == '__main__':
+  run()
+```
+---
+* ### Flask
+
+```Python
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/')
+def welcome():
+  return "welcome to flask"
+
+if __name__ == '__main__':
+  run()
+```
+
+---
+### Question
+1, How Flask connect a request to a view function exactly?
+
+2, How Flask implemente session?
+---
+
+## Web server and Web applications
+
+#### Web server
+* Apache
+* LightHttpd
+* Nginx
+* etc
+
+#### Web applications
+* Django
+* Flask
+* web.py
+* etc
+
+#### Anyway, why WSGI?
+* 1990s Grisha Trubetskoy mod_python Apache
+* Nginx, LightHttpd etc
+---
+#### WSGI
+> WSGI specifies a proposed standard interface between web servers and Python web applications or frameworks, to promote web application portability across a variety of web servers.
+
+```Python
+def wsgi_app(environ, start_response):
+  status = '200 OK'
+  response_headers = [('Content-type', 'text/plain')]
+  start_response(status, response_headers)
+  return ['Hello world!\n']
+
+```
+
+Flask callable object implementation
+```Python
+def wsgi_app(environ, start_response):
+  with RequestContext(environ):
+    rv = dispatch_request()
+    response = make_response(rv)
+    response = process_response(response)
+    return response(environ, start_response)
+
+```
+---
+## Session In Flask
+
+#### Stateless HTTP and Private information
+```bash
+GET /api/v1/orders/{order_id}/
+```
+A's order info
+```json
+{
+  'orderid': 13937,
+  'userid': 297045,
+  'buyer_address': {},
+  'seller_address': {},
+  ...
+}
+```
+B's order info
+```json
+{
+  'orderid': 13938,
+  'userid': 297043,
+  'buyer_address': {},
+  'seller_address': {},
+  ...
+}
+```
+---
+After successfully login
+* session id
+* server side store the login status in the storage
+* client side set the cookie in brower local storage
+
+```json
+{
+  '9PhQ4YMRDwAcYjNyuZEyTeCslww': {
+    'user_name': 'kenseller',
+    'userid': 170854,
+    'avatar': 'https://s.sg/th.jpg',
+    'email': 'kenseller@shopeemobile.com'
+    ....
+  }
+}
+```
+
+```bash
+http --session=/tmp/flask_session.json GET http://localhost:5000/login/archer
+
+HTTP/1.0 200 OK
+Content-Length: 16
+Content-Type: text/html; charset=utf-8
+Date: Tue, 08 Aug 2017 04:16:12 GMT
+Server: Werkzeug/0.12.2 Python/2.7.6
+Set-Cookie: session='9PhQ4YMRDwAcYjNyuZEyTeCslww'
+```
+---
+### Session data model
+Gloable variable for each request context
+```Python
+# context locals, flask line 662
+_request_ctx_stack = LocalStack()
+session = LocalProxy(lambda: _request_ctx_stack.top.session)
+```
+
+```Python
+from flask import session
+
+app.secret_key = 'blablabla'
+
+# set session
+session['user_info'] = {}
+
+# remove session
+session.pop('user_info')
+```
+---
+#### Load session data from request
+```Python
+class RequestContext(object):
+  def __init__(self, app, environ):
+    self.session = app.open_session(self.request)
+
+def open_session(self, request):
+  key = self.secret_key
+  if key is not None:
+    return SecureCookie.load_cookie(request, self.session_cookie_name, secret_key)
+```
+
+#### Set session into response
+```Python
+def process_response(self, response):
+  session = _request_ctx_stack.top.session
+  if session is not None:
+      self.save_session(session, response)
+  return response
+
+def save_session(self, session, response):
+    if session is not None:
+        session.save_cookie(response, self.session_cookie_name)
+```
+
+---
+#### Process Flow
+* browser send request with session in it as Cookies
+* web server receives the request, and invoke the callable object of web application
+* start running of the web application, wsgi_app
+* prepare the request context first
+* load session data from request Cookies into request context
+* find the view function according to the requested url in url map
+* execute the view function with the arguments
+* prepare the response with the execute results
+* set the session data with HTTP Set-Cookie
+* return it to web server
+* return it to browser
+---
+## Route In Flask
+#### Data model
+```Python
+class Flask(object):
+  def __init__(self, package_name):
+    self.view_functions = {}
+    self.url_map = Map()
+```
+
+#### Registering a url -- decorator
+```Python
+def route(self, rule, **options):
+ def decorator(f):
+   self.add_url_rule(rule, f.__name__, **options)
+   self.view_functions[f.__name__] = f
+ return decorator
+```
+
+```Python
+@app.route('/')
+def welcome():
+  return 'welcome ya'
+```
+---
+```Python
+url_map('/', 'welcome', **options)
+
+view_functions = {
+  'welcome': welcome
+}
+```
+---
+#### Matching the request to view functions
+```Python
+def wsgi_app(self, environ, start_response):
+   with self.request_context(environ): #
+     rv = self.preprocess_request()
+     if rv is None:
+         rv = self.dispatch_request() # match route and execute it
+     response = self.make_response(rv)
+     response = self.process_response(response)
+     return response(environ, start_response)
+
+def dispatch_request(self):
+   try:
+     endpoint, values = self.match_request()
+     return self.view_functions[endpoint](**values)
+```
+
+* first, use url find the corresponding endpoint from url_map
+* second, use the endpoint find the corresponding view function in view_functions
+---
+## Context In Flask
+
+#### Data model
+```Python
+class _RequestContext(object):
+    def __init__(self, app, environ):
+        self.app = app
+        self.url_adapter = app.url_map.bind_to_environ(environ)
+        self.request = app.request_class(environ)
+        self.session = app.open_session(self.request)
+        self.g = _RequestGlobals()
+        self.flashes = None
+
+    def __enter__(self):
+        _request_ctx_stack.push(self)
+
+    def __exit__(self, exc_type, exc_value, tb):
+        if tb is None or not self.app.debug:
+            _request_ctx_stack.pop()
+
+request = LocalProxy(lambda: _request_ctx_stack.top.request)
+```
+```Python
+from flask import request
+
+request.args.get('username')
+```
+request as thread gloable var instead of view function argument
+---
+## Template Engine
+#### Why need template engine?
+* lots of logic but little textual data
+* lots of textual data but little logic
+
+#### Goal
+```html
+<html>
+  <head><title>Template</title></head>
+  <body>
+    <h3>Hello {{username}}</h3>
+  </body>
+</html>
+```
+
+```html
+<html>
+  <head><title>Template</title></head>
+  <body>
+    <h3>Hello archer</h3>
+  </body>
+</html>
+```
+---
+### Methods
+* string substitution
+  * % operator
+  * .format
+  * .replace
+* code execution
+
+```Python
+#!/usr/bin/env python
+
+# string format
+func_str = """
+def render_function(context):
+    c_person = context['username']
+    result = []
+
+    result.append('<html>\n<head><title>Template</title></head>\n<body>\n<h3>')
+    result.append(str(c_person))
+    result.append('</h3>\n</body>\n</html>')
+
+    return ''.join(result)
+"""
+namespace = {}
+exec(func_str, namespace) # will put render_function as a function into namespace, like JS's evil eval which will execute a string as a statements
+html = namespace.get('render_function')({'username': 'code execution'})
+print html
+```
+---
+## Basic Principles -- Interpreter & Compiler
+
+Template == source file
+
+Template Engine == Interpreter/Compiler
+
+Template File = Static Part + Dynamic Part
+
+Static Part:
+* HTML tags
+* String Literals
+
+Dynamic Part:
+* Expressions -- {{username}}
+* Conditions -- {% if * %}
+* Loop Control -- {% for * %}
+
+---
+## Basic Principles -- Category
+
+* String substitution
+* Code Execution
+* Mixed
+
+---
+class: center, middle
+# QA & Thanks
+
+---
+## References
+[How a template engine works](https://fengsp.github.io/blog/2016/8/how-a-template-engine-works/)
+
+[The word's simpest template engine](https://makina-corpus.com/blog/metier/2016/the-worlds-simplest-python-template-engine)
+
+[Template Engines -- Fullstack Python](https://www.fullstackpython.com/template-engines.html)
+
+[TemplateEngine](https://github.com/csrgxtu/TemplateEngine/issues/1)
+
+
+
+    </textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
