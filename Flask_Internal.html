@@ -21,26 +21,23 @@
 
 class: center, middle
 
-# Flask Inernal
+# Flask 实现原理
 archer.li@shopeemobile.com
 
-Software Engineer @ Sea Shopee
-
 
 ---
-## Contents
-* ### History
-* ### Web server and Web applications
-* ### Session In Flask
-* ### Route In Flask
-* ### Context In Flask
-* ### Template Engine
-* ### Reference
-
+## 目录
+* ### 历史
+* ### 网站服务器和网站应用程序
+* ### 会话机制
+* ### 路由机制
+* ### 请求上下问
+* ### 模板引擎
+* ### 参考
 
 ---
 
-## History
+## 历史
 
 * #### Armin Ronacher  [@mitsuhiko](@mitsuhiko), Pocoo
 * #### Deny
@@ -74,31 +71,45 @@ if __name__ == '__main__':
 
 ---
 ### Question
-1, How Flask connect a request to a view function exactly?
+1, 请求是如何被传递，处理并且返回？
+```bash
+http://localhost/
+```
+```Python
+def welcome():
+  return 'welcome to Flask'
+```
 
-2, How Flask implemente session?
+2, 会话机制在Flask中是如何串通的？
+```Python
+from flask import Flask, session
+app = Flask(__name__)
+app.serect = 'blabla'
+session['user_info'] = {}
+```
 ---
 
-## Web server and Web applications
+## 网站服务器和网站应用
 
-#### Web server
-* Apache
-* LightHttpd
+#### 为什么需要WSGI？
+* 1990s _Grisha Trubetskoy_ [mod_python](http://modpython.org/) Apache
+* Nginx etc
+
+#### 网站服务器
+* Gunicorn
+* wsgiref
 * Nginx
 * etc
 
-#### Web applications
+#### 网站应用
 * Django
 * Flask
 * web.py
 * etc
 
-#### Anyway, why WSGI?
-* 1990s Grisha Trubetskoy mod_python Apache
-* Nginx, LightHttpd etc
 ---
-#### WSGI
-> WSGI specifies a proposed standard interface between web servers and Python web applications or frameworks, to promote web application portability across a variety of web servers.
+#### WSGI -- PEP333
+> WSGI specifies a proposed standard interface between web servers and Python web applications or frameworks, to promote web application **portability** across a variety of web servers.
 
 ```Python
 def wsgi_app(environ, start_response):
@@ -109,7 +120,7 @@ def wsgi_app(environ, start_response):
 
 ```
 
-Flask callable object implementation
+Flask 的入口函数
 ```Python
 def wsgi_app(environ, start_response):
   with RequestContext(environ):
@@ -397,13 +408,18 @@ class: center, middle
 
 ---
 ## References
-[How a template engine works](https://fengsp.github.io/blog/2016/8/how-a-template-engine-works/)
+[Flask, A simple history](https://github.com/csrgxtu/Cocoa/wiki/Flask,-a-simple-history)
 
-[The word's simpest template engine](https://makina-corpus.com/blog/metier/2016/the-worlds-simplest-python-template-engine)
+[Web server and web application](https://github.com/csrgxtu/Cocoa/wiki/Web-Server-and-Web-app)
 
-[Template Engines -- Fullstack Python](https://www.fullstackpython.com/template-engines.html)
+[Flask Session](https://github.com/csrgxtu/Cocoa/wiki/Flask-Session)
 
-[TemplateEngine](https://github.com/csrgxtu/TemplateEngine/issues/1)
+[Flask URL Routing](https://github.com/csrgxtu/Cocoa/wiki/Flask-URL-Routing)
+
+[Flask Context](https://github.com/csrgxtu/Cocoa/wiki/Flask-Request-Context)
+
+[Template Engine](https://github.com/csrgxtu/TemplateEngine/issues/1)
+
 
 
 
