@@ -33,7 +33,6 @@ archer.li@shopeemobile.com
 * ### 路由机制
 * ### 请求上下问
 * ### 模板引擎
-* ### 参考
 
 ---
 
@@ -70,7 +69,7 @@ if __name__ == '__main__':
 ```
 
 ---
-### Question
+### 问题
 1, 请求是如何被传递，处理并且返回？
 ```bash
 http://localhost/
@@ -111,14 +110,6 @@ session['user_info'] = {}
 #### WSGI -- PEP333
 > WSGI specifies a proposed standard interface between web servers and Python web applications or frameworks, to promote web application **portability** across a variety of web servers.
 
-```Python
-def wsgi_app(environ, start_response):
-  status = '200 OK'
-  response_headers = [('Content-type', 'text/plain')]
-  start_response(status, response_headers)
-  return ['Hello world!\n']
-
-```
 
 Flask 的入口函数
 ```Python
@@ -131,13 +122,13 @@ def wsgi_app(environ, start_response):
 
 ```
 ---
-## Session In Flask
+## Session 机制
 
-#### Stateless HTTP and Private information
+#### 无状态的HTTP
 ```bash
 GET /api/v1/orders/{order_id}/
 ```
-A's order info
+A的订单信息
 ```json
 {
   'orderid': 13937,
@@ -147,7 +138,7 @@ A's order info
   ...
 }
 ```
-B's order info
+B的订单信息
 ```json
 {
   'orderid': 13938,
@@ -158,10 +149,10 @@ B's order info
 }
 ```
 ---
-After successfully login
+登陆成功后
 * session id
-* server side store the login status in the storage
-* client side set the cookie in brower local storage
+* 服务端端存储
+* 客户端存储
 
 ```json
 {
@@ -186,8 +177,8 @@ Server: Werkzeug/0.12.2 Python/2.7.6
 Set-Cookie: session='9PhQ4YMRDwAcYjNyuZEyTeCslww'
 ```
 ---
-### Session data model
-Gloable variable for each request context
+### 数据模型
+Werkzeug.Local类型的全局变量
 ```Python
 # context locals, flask line 662
 _request_ctx_stack = LocalStack()
@@ -200,13 +191,13 @@ from flask import session
 app.secret_key = 'blablabla'
 
 # set session
-session['user_info'] = {}
+session[user_id] = {}
 
 # remove session
-session.pop('user_info')
+session.pop(user_id)
 ```
 ---
-#### Load session data from request
+#### 载入会话信息
 ```Python
 class RequestContext(object):
   def __init__(self, app, environ):
@@ -218,7 +209,7 @@ def open_session(self, request):
     return SecureCookie.load_cookie(request, self.session_cookie_name, secret_key)
 ```
 
-#### Set session into response
+#### 设置会话信息
 ```Python
 def process_response(self, response):
   session = _request_ctx_stack.top.session
@@ -232,21 +223,8 @@ def save_session(self, session, response):
 ```
 
 ---
-#### Process Flow
-* browser send request with session in it as Cookies
-* web server receives the request, and invoke the callable object of web application
-* start running of the web application, wsgi_app
-* prepare the request context first
-* load session data from request Cookies into request context
-* find the view function according to the requested url in url map
-* execute the view function with the arguments
-* prepare the response with the execute results
-* set the session data with HTTP Set-Cookie
-* return it to web server
-* return it to browser
----
-## Route In Flask
-#### Data model
+## 路由机制
+#### 数据模型
 ```Python
 class Flask(object):
   def __init__(self, package_name):
@@ -254,7 +232,7 @@ class Flask(object):
     self.url_map = Map()
 ```
 
-#### Registering a url -- decorator
+#### 构建路由表 -- 装饰器
 ```Python
 def route(self, rule, **options):
  def decorator(f):
@@ -277,7 +255,7 @@ view_functions = {
 }
 ```
 ---
-#### Matching the request to view functions
+#### 查找路由
 ```Python
 def wsgi_app(self, environ, start_response):
    with self.request_context(environ): #
@@ -294,12 +272,12 @@ def dispatch_request(self):
      return self.view_functions[endpoint](**values)
 ```
 
-* first, use url find the corresponding endpoint from url_map
-* second, use the endpoint find the corresponding view function in view_functions
+* 根据url从url_map中找到对应的视图函数名称
+* 根据名称从view_functions里面找到函数对象
 ---
-## Context In Flask
+## 请求上下文
 
-#### Data model
+#### 数据模型
 ```Python
 class _RequestContext(object):
     def __init__(self, app, environ):
@@ -324,14 +302,13 @@ from flask import request
 
 request.args.get('username')
 ```
-request as thread gloable var instead of view function argument
 ---
-## Template Engine
-#### Why need template engine?
-* lots of logic but little textual data
-* lots of textual data but little logic
+## 模板引擎
+#### 为什么需要模板引擎?
+* 逻辑处理较多
+* 文本处理较多
 
-#### Goal
+#### 目标
 ```html
 <html>
   <head><title>Template</title></head>
@@ -350,12 +327,12 @@ request as thread gloable var instead of view function argument
 </html>
 ```
 ---
-### Methods
-* string substitution
+### 方法
+* 字符串替换
   * % operator
   * .format
   * .replace
-* code execution
+* 代码执行
 
 ```Python
 #!/usr/bin/env python
@@ -378,36 +355,11 @@ html = namespace.get('render_function')({'username': 'code execution'})
 print html
 ```
 ---
-## Basic Principles -- Interpreter & Compiler
-
-Template == source file
-
-Template Engine == Interpreter/Compiler
-
-Template File = Static Part + Dynamic Part
-
-Static Part:
-* HTML tags
-* String Literals
-
-Dynamic Part:
-* Expressions -- {{username}}
-* Conditions -- {% if * %}
-* Loop Control -- {% for * %}
-
----
-## Basic Principles -- Category
-
-* String substitution
-* Code Execution
-* Mixed
-
----
 class: center, middle
-# QA & Thanks
+# 谢谢
 
 ---
-## References
+## 参考
 [Flask, A simple history](https://github.com/csrgxtu/Cocoa/wiki/Flask,-a-simple-history)
 
 [Web server and web application](https://github.com/csrgxtu/Cocoa/wiki/Web-Server-and-Web-app)
