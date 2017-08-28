@@ -33,7 +33,7 @@ archer.li@shopeemobile.com
 * #### Flask处理流程
 * #### 会话机制
 * #### 路由机制
-* #### 请求上下问
+* #### 请求上下文
 * #### 模板引擎
 
 ---
@@ -343,18 +343,27 @@ request.args.get('username')
   * .format
   * .replace
 * 代码执行
+  * 模板
+  * 字面量
+  * 对象
+  * 带参数执行
+
+```Python
+CodeBuilder.add_line('result.apend("<html>\nHello ") ')
+CodeBuilder.add_line(str(username))
+```
+---
 
 ```Python
 #!/usr/bin/env python
 
 # string format
 func_str = """
-def render_function(context):
-    c_person = context['username']
+def render_function(**kwargs):
     result = []
 
     result.append('<html>\n<head><title>Template</title></head>\n<body>\n<h3>')
-    result.append(str(c_person))
+    result.append(str(user_name))
     result.append('</h3>\n</body>\n</html>')
 
     return ''.join(result)
