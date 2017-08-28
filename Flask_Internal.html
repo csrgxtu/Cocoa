@@ -27,12 +27,14 @@ archer.li@shopeemobile.com
 
 ---
 ## 目录
-* ### 历史
-* ### 网站服务器和网站应用程序
-* ### 会话机制
-* ### 路由机制
-* ### 请求上下问
-* ### 模板引擎
+* #### 历史
+* #### 网站服务器和网站应用程序
+* #### Werkzeug Local介绍
+* #### Flask处理流程
+* #### 会话机制
+* #### 路由机制
+* #### 请求上下问
+* #### 模板引擎
 
 ---
 
@@ -122,6 +124,22 @@ def wsgi_app(environ, start_response):
 
 ```
 ---
+## Flask处理流程
+<!-- ![flask request process flow](https://user-images.githubusercontent.com/5053620/29756205-97236942-8bd4-11e7-9531-9d55c7033981.png =250x20) -->
+<img src="https://user-images.githubusercontent.com/5053620/29756205-97236942-8bd4-11e7-9531-9d55c7033981.png" alt="Drawing" style="width: 400px;"/>
+---
+## Werkzeug Local介绍
+
+* 线程全局变量
+* 线程局部变量
+* ThreadLocal
+* Werkzeug.Local
+
+```Python
+_request_ctx_stack = LocalStack()
+request = _request_ctx_stack.top.request
+```
+---
 ## Session 机制
 
 #### 无状态的HTTP
@@ -182,7 +200,7 @@ Werkzeug.Local类型的全局变量
 ```Python
 # context locals, flask line 662
 _request_ctx_stack = LocalStack()
-session = LocalProxy(lambda: _request_ctx_stack.top.session)
+session = _request_ctx_stack.top.session
 ```
 
 ```Python
@@ -232,6 +250,9 @@ class Flask(object):
     self.url_map = Map()
 ```
 
+![route](https://user-images.githubusercontent.com/5053620/29773537-80faf138-8c30-11e7-8da9-9de34a80b2be.png)
+
+---
 #### 构建路由表 -- 装饰器
 ```Python
 def route(self, rule, **options):
@@ -246,7 +267,7 @@ def route(self, rule, **options):
 def welcome():
   return 'welcome ya'
 ```
----
+
 ```Python
 url_map('/', 'welcome', **options)
 
@@ -257,15 +278,6 @@ view_functions = {
 ---
 #### 查找路由
 ```Python
-def wsgi_app(self, environ, start_response):
-   with self.request_context(environ): #
-     rv = self.preprocess_request()
-     if rv is None:
-         rv = self.dispatch_request() # match route and execute it
-     response = self.make_response(rv)
-     response = self.process_response(response)
-     return response(environ, start_response)
-
 def dispatch_request(self):
    try:
      endpoint, values = self.match_request()
@@ -318,13 +330,11 @@ request.args.get('username')
 </html>
 ```
 
-```html
-<html>
-  <head><title>Template</title></head>
-  <body>
-    <h3>Hello archer</h3>
-  </body>
-</html>
+```Python
+{{%if%}}
+{{%for%}}
+{{%endif%}}
+{{%endfor%}}
 ```
 ---
 ### 方法
