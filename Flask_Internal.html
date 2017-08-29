@@ -28,9 +28,9 @@ archer.li@shopeemobile.com
 ---
 ## 目录
 * #### 历史
-* #### 网站服务器和网站应用程序
-* #### Werkzeug Local介绍
-* #### Flask处理流程
+* #### 通用网关接口
+* #### 并发机制
+* #### 处理流程
 * #### 会话机制
 * #### 路由机制
 * #### 请求上下文
@@ -85,21 +85,17 @@ def welcome():
 ```Python
 from flask import Flask, session
 app = Flask(__name__)
-app.serect = 'blabla'
-session['user_info'] = {}
+app.serect = 'secret'
+session[user_id] = {}
 ```
 ---
 
-## 网站服务器和网站应用
-
-#### 为什么需要WSGI？
-* 1990s _Grisha Trubetskoy_ [mod_python](http://modpython.org/) Apache
-* Nginx etc
+## 通用网关接口
 
 #### 网站服务器
 * Gunicorn
 * wsgiref
-* Nginx
+* Nginx + mod_wsgi
 * etc
 
 #### 网站应用
@@ -112,8 +108,10 @@ session['user_info'] = {}
 #### WSGI -- PEP333
 > WSGI specifies a proposed standard interface between web servers and Python web applications or frameworks, to promote web application **portability** across a variety of web servers.
 
-
-Flask 的入口函数
+<br/>
+<br/>
+<br/>
+#### Flask 的入口函数
 ```Python
 def wsgi_app(environ, start_response):
   with RequestContext(environ):
@@ -128,7 +126,7 @@ def wsgi_app(environ, start_response):
 <!-- ![flask request process flow](https://user-images.githubusercontent.com/5053620/29756205-97236942-8bd4-11e7-9531-9d55c7033981.png =250x20) -->
 <img src="https://user-images.githubusercontent.com/5053620/29756205-97236942-8bd4-11e7-9531-9d55c7033981.png" alt="Drawing" style="width: 400px;"/>
 ---
-## Werkzeug Local介绍
+## 并发机制
 
 * 线程全局变量
 * 线程局部变量
