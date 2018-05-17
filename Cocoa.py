@@ -44,6 +44,10 @@ class Cocoa(object):
         else:
             start_response('404 NOT FOUND', [('Content-Type', 'text/html')])
             return 'Route "{}" has not been registered'.format(path)
+    
+    def __call__(self, environ, start_response):
+        """Shortcut for :attr:`wsgi_app`"""
+        return self.application(environ, start_response)
 
     def run(self, host, port):
         ''' start a embed wsgi compatible http web server '''
